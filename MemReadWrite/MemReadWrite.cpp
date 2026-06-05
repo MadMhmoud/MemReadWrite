@@ -1,18 +1,73 @@
 #include <windows.h>
+#include <tlhelp32.h>
+#include <string.h>
 
 //For Universality, we export our functions with C linkage and ensure they are visible outside the DLL
 #define MEM_API extern "C" __declspec(dllexport)
 
+
 HANDLE hProcess;
+
+
+MEM_API DWORD GetProcessByName(const char* processName) {
+
+    DWORD processId = 0;
+
+	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);  //a snapshot of all processes in system, TH32CS_SNAPPROCESS for filtering only active processes
+
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+
+        return 0;
+    }
+
+    PROCESSENTRY32W pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32W);
+
+    wchar_t wideProcessName[MAX_PATH];
+    MultiByteToWideChar(CP_ACP, 0, processName, -1, wideProcessName, MAX_PATH);
+
+    if (Process32FirstW(hSnapshot, &pe32) == 0) {
+
+        do {
+
+            if (_wcsicmp(pe32.szExeFile, wideProcessName)) {
+
+                processId = pe32.th32ProcessID;
+                break;
+            }
+        } while (Process32NextW(hSnapshot, &pe32));
+
+    }
+
+    CloseHandle(hSnapshot);
+
+    return processId;
+}
 
 MEM_API bool Attach(DWORD processId) {
 
-     hProcess = OpenProcess(PROCESS_VM_READ, FALSE, processId); // getting the process handle from the process id
+     hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, processId); // getting the process handle from the process id
 
      if (hProcess == NULL) {
+        
 
          return false;
      }
+     return true;
+}
+
+MEM_API bool Attach(const char* processName) {
+
+    DWORD processId = GetProcessByName(processName);
+
+
+    hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, processId); // getting the process handle from the process id
+
+    if (hProcess == NULL) {
+
+        return false;
+    }
+    return true;
 }
 
 MEM_API void Detach() {
@@ -30,8 +85,6 @@ MEM_API bool ReadBytes(uintptr_t address, unsigned char* buffer, SIZE_T size) {
 
     // Read the memory from the target process into our local buffer
     BOOL success = ReadProcessMemory(hProcess, (LPCVOID)address, buffer, size, &bytesRead);
-
-    CloseHandle(hProcess);
 
     // Return true only if the OS reported success AND we read the exact number of expected bytes
     return success && (bytesRead == size);
