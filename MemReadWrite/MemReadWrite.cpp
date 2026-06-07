@@ -9,7 +9,7 @@
 HANDLE hProcess;
 
 
-MEM_API DWORD GetProcessByName(const char* processName) {
+MEM_API DWORD GetProcessIdByName(const char* processName) {
 
     DWORD processId = 0;
 
@@ -26,11 +26,11 @@ MEM_API DWORD GetProcessByName(const char* processName) {
     wchar_t wideProcessName[MAX_PATH];
     MultiByteToWideChar(CP_ACP, 0, processName, -1, wideProcessName, MAX_PATH);
 
-    if (Process32FirstW(hSnapshot, &pe32) == 0) {
+    if (Process32FirstW(hSnapshot, &pe32)) {
 
         do {
 
-            if (_wcsicmp(pe32.szExeFile, wideProcessName)) {
+            if (_wcsicmp(pe32.szExeFile, wideProcessName) == 0) {
 
                 processId = pe32.th32ProcessID;
                 break;
@@ -56,9 +56,9 @@ MEM_API bool Attach(DWORD processId) {
      return true;
 }
 
-MEM_API bool Attach(const char* processName) {
+MEM_API bool AttachByName(const char* processName) {
 
-    DWORD processId = GetProcessByName(processName);
+    DWORD processId = GetProcessIdByName(processName);
 
 
     hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, processId); // getting the process handle from the process id
