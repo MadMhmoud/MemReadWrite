@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <tlhelp32.h>
 #include <string.h>
+#include <cstdint>
 
 //For Universality, we export our functions with C linkage and ensure they are visible outside the DLL
 #define MEM_API extern "C" __declspec(dllexport)
@@ -44,6 +45,9 @@ MEM_API DWORD GetProcessIdByName(const char* processName) {
     return processId;
 }
 
+
+
+
 MEM_API bool Attach(DWORD processId) {
 
      hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, processId); // getting the process handle from the process id
@@ -79,6 +83,10 @@ MEM_API void Detach() {
 	}
 }
 
+
+
+
+
 MEM_API bool ReadBytes(uintptr_t address, unsigned char* buffer, SIZE_T size) {
 
     SIZE_T bytesRead = 0;
@@ -113,4 +121,59 @@ MEM_API bool WriteBytes(uintptr_t address, unsigned char* buffer, SIZE_T size) {
 
     return success && (bytesWritten == size);
 }
+
+
+
+
+MEM_API int32_t readInt(uintptr_t address) {
+    int32_t value = 0;
+
+    ReadBytes(address, (unsigned char*)&value, sizeof(value));
+    return value;
+}
+
+MEM_API bool writeInt(uintptr_t address, int32_t value) {
+
+    return WriteBytes(address, (unsigned char*)&value, sizeof(value));
+}
+
+MEM_API float readFloat(uintptr_t address) {
+
+    float value = 0.0f;
+
+    ReadBytes(address, (unsigned char*)&value, sizeof(value));
+    return value;
+}
+
+MEM_API bool writeFloat(uintptr_t address, float value) {
+
+    return WriteBytes(address, (unsigned char*)&value, sizeof(value));
+}
+
+MEM_API int64_t readLong(uintptr_t address) {
+
+    int64_t value = 0;
+
+    ReadBytes(address, (unsigned char*)&value, sizeof(value));
+    return value;
+}
+
+MEM_API bool writeLong(uintptr_t address, int64_t value) {
+
+    return WriteBytes(address, (unsigned char*)&value, sizeof(value));
+}
+
+MEM_API double readDouble(uintptr_t address) {
+
+    double value = 0.0;
+
+    ReadBytes(address, (unsigned char*)&value, sizeof(value));
+    return value;
+}
+
+MEM_API bool writeDouble(uintptr_t address, double value) {
+
+    return WriteBytes(address, (unsigned char*)&value, sizeof(value));
+}
+
 
