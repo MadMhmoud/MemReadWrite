@@ -45,6 +45,39 @@ MEM_API DWORD GetProcessIdByName(const char* processName) {
     return processId;
 }
 
+MEM_API uintptr_t GetModuleBaseAddress(DWORD processId, const char* moduleName) {
+    uintptr_t dwModuleBaseAddress = 0;
+
+ 
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, processId);
+
+    if (hSnapshot != INVALID_HANDLE_VALUE) {
+
+        MODULEENTRY32W me32;
+        me32.dwSize = sizeof(MODULEENTRY32W);
+
+        wchar_t wideModuleName[MAX_PATH];
+        MultiByteToWideChar(CP_ACP, 0, moduleName, -1, wideModuleName, MAX_PATH);
+
+        if (Module32FirstW(hSnapshot, &me32)) {
+            do {
+
+                if (_wcsicmp(me32.szModule, wideModuleName) == 0) {
+
+                    dwModuleBaseAddress = (uintptr_t)me32.modBaseAddr;
+                    break;
+                }
+
+            } 
+            while (Module32NextW(hSnapshot, &me32));
+        }
+
+        CloseHandle(hSnapshot);
+    }
+
+    return dwModuleBaseAddress;
+}
+
 
 
 
@@ -54,7 +87,6 @@ MEM_API bool Attach(DWORD processId) {
 
      if (hProcess == NULL) {
         
-
          return false;
      }
      return true;
@@ -63,7 +95,6 @@ MEM_API bool Attach(DWORD processId) {
 MEM_API bool AttachByName(const char* processName) {
 
     DWORD processId = GetProcessIdByName(processName);
-
 
     hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION, FALSE, processId); // getting the process handle from the process id
 
@@ -120,6 +151,28 @@ MEM_API bool WriteBytes(uintptr_t address, unsigned char* buffer, SIZE_T size) {
     VirtualProtectEx(hProcess, (LPVOID)address, size, oldProtect, &oldProtect);
 
     return success && (bytesWritten == size);
+}
+
+
+
+
+MEM_API uintptr_t ResolvePointerChain(uintptr_t baseAddress, uintptr_t* offsets, int offsetsCount) {
+
+    uintptr_t currentAddress = baseAddress; // starting from the baseAddress
+
+    for (int i = 0; i < offsetsCount; i++) {
+
+        ReadProcessMemory(hProcess, (LPCVOID)currentAddress, &currentAddress, sizeof(currentAddress), NULL);
+
+        if (currentAddress == 0) {
+
+            return 0; // abort if a pointer layer evaluates to null
+        }
+
+        currentAddress += offsets[i]; // adding the next iffset to the current pointer 
+    }
+
+    return currentAddress;
 }
 
 
