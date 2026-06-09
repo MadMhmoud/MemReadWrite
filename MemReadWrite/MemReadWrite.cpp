@@ -36,6 +36,7 @@ MEM_API DWORD GetProcessIdByName(const char* processName) {
                 processId = pe32.th32ProcessID;
                 break;
             }
+
         } while (Process32NextW(hSnapshot, &pe32));
 
     }
