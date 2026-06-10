@@ -18,6 +18,7 @@ A lightweight, C-linked Windows DLL for external process memory manipulation.
 * `DWORD GetProcessIdByName(const char* processName)`
 * `bool Attach(DWORD processId)`
 * `bool AttachByName(const char* processName)`
+* `uintptr_t GetModuleBaseAddress(DWORD processId, const char* moduleName)`
 * `void Detach()`
 
 ### Core Functions
@@ -27,6 +28,9 @@ bool ReadBytes(uintptr_t address, unsigned char* buffer, SIZE_T size);
 
 // Overwrites target memory (automatically manages page protections)
 bool WriteBytes(uintptr_t address, unsigned char* buffer, SIZE_T size);
+
+// Returns the address pointed to from a pointer chain
+uintptr_t ResolvePointerChain(uintptr_t baseAddress, uintptr_t* offsets, int offsetsCount)
 ```
 
 ### Type Wrappers
